@@ -1,0 +1,247 @@
+<
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>戒烟 AI 系统 V10 FINAL</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial;
+    background: radial-gradient(circle at top, #02040a, #000);
+    color: white;
+}
+
+.panel {
+    width: 480px;
+    margin: 40px auto;
+    padding: 25px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 20px;
+    border: 1px solid rgba(0,255,255,0.25);
+    box-shadow: 0 0 60px rgba(0,255,255,0.12);
+    text-align: center;
+}
+
+h1 {
+    background: linear-gradient(90deg,#00f2fe,#4facfe);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.big {
+    font-size: 60px;
+    color: #00f2fe;
+    text-shadow: 0 0 25px #00f2fe;
+}
+
+.row {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 15px;
+}
+
+.box {
+    width: 23%;
+    padding: 10px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 10px;
+    font-size: 13px;
+}
+
+button {
+    margin-top: 12px;
+    padding: 10px 18px;
+    border-radius: 25px;
+    border: none;
+    cursor: pointer;
+    color: white;
+    transition: 0.3s;
+}
+
+.ok {
+    background: linear-gradient(90deg,#00f2fe,#4facfe);
+}
+
+.reset {
+    background: #ff4d4d;
+}
+
+.chat {
+    margin-top: 15px;
+    text-align: left;
+    font-size: 13px;
+    height: 140px;
+    overflow-y: auto;
+    background: rgba(255,255,255,0.03);
+    padding: 10px;
+    border-radius: 10px;
+}
+
+input {
+    width: 70%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 20px;
+    border: none;
+}
+
+.send {
+    width: 25%;
+}
+</style>
+</head>
+
+<body>
+
+<div class="panel">
+    <h1>戒烟 AI FINAL SYSTEM</h1>
+
+    <div>戒烟天数</div>
+    <div class="big" id="days">0</div>
+
+    <div class="row">
+        <div class="box">Lv <span id="lv">1</span></div>
+        <div class="box">XP <span id="xp">0</span></div>
+        <div class="box">Streak <span id="streak">0</span></div>
+        <div class="box">成就 <span id="ach">0</span></div>
+    </div>
+
+    <button class="ok" onclick="checkIn()">今日任务完成</button>
+    <button class="reset" onclick="reset()">重置</button>
+
+    <div class="chat" id="chat"></div>
+
+    <div>
+        <input id="input" placeholder="和AI教练说点什么...">
+        <button class="send" onclick="send()">发送</button>
+    </div>
+</div>
+
+<script>
+let data = JSON.parse(localStorage.getItem("v10") || "{}");
+
+if(!data.totalDays){
+    data = {
+        totalDays: 0,
+        streak: 0,
+        xp: 0,
+        level: 1,
+        last: null,
+        achievements: [],
+        messages: []
+    };
+}
+
+function today(){
+    return new Date().toISOString().split("T")[0];
+}
+
+function levelUp(){
+    data.level = Math.floor(data.xp / 50) + 1;
+}
+
+function checkIn(){
+
+    let now = today();
+
+    if(data.last === now){
+        addChat("系统：今天任务已经完成了");
+        return;
+    }
+
+    if(data.last){
+        let diff = (new Date(now) - new Date(data.last)) / 86400000;
+        data.streak = diff === 1 ? data.streak + 1 : 1;
+    } else {
+        data.streak = 1;
+    }
+
+    data.totalDays++;
+    data.xp += 10;
+    data.last = now;
+
+    levelUp();
+    save();
+
+    addChat("系统：今日任务完成 ✔ 继续保持");
+    render();
+}
+
+function send(){
+    let input = document.getElementById("input");
+    let text = input.value;
+    if(!text) return;
+
+    addChat("你：" + text);
+
+    setTimeout(()=>{
+        addChat("AI教练：" + aiReply(text));
+    },500);
+
+    input.value = "";
+}
+
+function aiReply(text){
+
+    if(data.streak === 0){
+        return "先完成今天的任务，我们再聊。";
+    }
+
+    if(text.includes("难")){
+        return "我知道不容易，但你已经在改变路径了。";
+    }
+
+    if(text.includes("想抽")){
+        return "冲动是短暂的，但你的选择是长期的。";
+    }
+
+    if(data.streak < 3){
+        return "刚开始阶段，大脑还在适应。";
+    }
+
+    if(data.streak < 10){
+        return "你已经开始控制行为了。";
+    }
+
+    return "你正在建立一个新的自己。";
+}
+
+function addChat(msg){
+    data.messages.push(msg);
+    save();
+    renderChat();
+}
+
+function renderChat(){
+    let box = document.getElementById("chat");
+    box.innerHTML = data.messages.slice(-20).join("<br>");
+    box.scrollTop = box.scrollHeight;
+}
+
+function reset(){
+    if(confirm("确定重置系统？")){
+        localStorage.removeItem("v10");
+        location.reload();
+    }
+}
+
+function save(){
+    localStorage.setItem("v10", JSON.stringify(data));
+}
+
+function render(){
+    document.getElementById("days").innerText = data.totalDays;
+    document.getElementById("streak").innerText = data.streak;
+    document.getElementById("xp").innerText = data.xp;
+    document.getElementById("lv").innerText = data.level;
+    document.getElementById("ach").innerText = data.achievements.length;
+}
+
+render();
+renderChat();
+</script>
+
+</body>
+</html>

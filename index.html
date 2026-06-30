@@ -169,18 +169,44 @@ function checkIn(){
     render();
 }
 
-function send(){
-    let input = document.getElementById("input");
-    let text = input.value;
-    if(!text) return;
+async function send(){
 
-    addChat("你：" + text);
+let input = document.getElementById("input");
+let text = input.value.trim();
 
-    setTimeout(()=>{
-        addChat("AI教练：" + aiReply(text));
-    },500);
+if(!text) return;
 
-    input.value = "";
+addChat("你：" + text);
+input.value = "";
+
+addChat("AI教练：思考中...");
+
+try{
+
+const response = await fetch("/api/chat",{
+method:"POST",
+headers:{
+"Content-Type":"application/json"
+},
+body: JSON.stringify({
+message:text
+})
+});
+
+const result = await response.json();
+
+data.messages.pop();
+
+addChat("AI教练：" + result.reply);
+
+}catch(e){
+
+data.messages.pop();
+
+addChat("AI教练：连接失败，请稍后重试。");
+}
+
+save();
 }
 
 function aiReply(text){
